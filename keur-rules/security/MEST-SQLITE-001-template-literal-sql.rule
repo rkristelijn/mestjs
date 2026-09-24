@@ -1,0 +1,19 @@
+# SQLite / better-sqlite3 raw-SQL and misuse antipatterns.
+# Source: docs/research/sqlite.md (OWASP SQLi Prevention, better-sqlite3 docs,
+# sqlite.org PRAGMA + security.html). Statically-detectable rows.
+id: MEST-SQLITE-001
+title: SQLite query built with a template literal (SQL injection)
+category: sqli
+severity: critical
+engine: pattern
+action: block
+target:
+  extensions: .js .ts .mjs .jsx .tsx
+  exclude_paths: test/ tests/ node_modules/ dist/ build/
+patterns:
+  - regex: (?i)\.(?:prepare|exec|run|all|get)\s*\(\s*`[^`]*\$\{
+    message: "SQL built with a template literal interpolating ${...} — SQL injection (better-sqlite3). Use a placeholder (?, @name, :name) and bind parameters instead."
+  - regex: (?i)\.(?:prepare|exec)\s*\(\s*[a-zA-Z_$][\w$]*\s*\)
+    message: "SQL sink called with a variable (db.exec(userSql)/prepare(sql)) — if that string is built from input this is SQL injection. Prefer prepared statements with bound params."
+confidence: 0.8
+fix: "Parameterize: db.prepare('SELECT ... WHERE x = ?').get(value). Never interpolate input into the SQL text."

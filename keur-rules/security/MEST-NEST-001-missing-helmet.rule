@@ -1,0 +1,24 @@
+# NestJS bootstrap that creates the app but never registers helmet / security
+# headers. block-absence: find the bootstrap block, flag it when no helmet/
+# useSecurityHeaders call appears inside. Scoped to NestJS projects via requires.
+# Source: docs/research/nestjs.md rows 1-2 (docs.nestjs.com/security/helmet).
+id: MEST-NEST-001
+title: NestJS app bootstrapped without helmet / security headers
+category: security
+severity: warning
+engine: block-absence
+action: warn
+skip_comments: true
+skip_strings: true
+requires:
+  framework: @nestjs
+target:
+  extensions: .ts .js
+  exclude_paths: test/ tests/ node_modules/ dist/ build/
+patterns:
+  - regex: \basync\s+function\s+bootstrap\s*\(
+block_inner: (?i)helmet|useSecurityHeaders
+block_trigger: NestFactory\.create
+confidence: 0.6
+message: "NestJS bootstrap() creates the app but never registers helmet()/useSecurityHeaders() — responses ship without CSP, HSTS, X-Frame-Options, etc. Add app.use(helmet()) (Express) or app.register(helmet) (Fastify)."
+fix: "In bootstrap(), after NestFactory.create, call app.use(helmet()) (Express) or app.useSecurityHeaders() / app.register(helmet) (Fastify)."

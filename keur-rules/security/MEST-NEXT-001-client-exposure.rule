@@ -1,0 +1,21 @@
+# Next.js client-exposure and header hardening antipatterns.
+# Source: docs/research/nextjs.md rows 8,9,17,18,19 (nextjs.org security docs).
+id: MEST-NEXT-001
+title: Next.js secret exposure / unsafe headers
+category: security
+severity: error
+engine: pattern
+requires:
+  framework: next
+target:
+  extensions: .ts .js .tsx .jsx .mjs .env
+  exclude_paths: test/ tests/ node_modules/ dist/ build/ .next/
+patterns:
+  - regex: (?i)NEXT_PUBLIC_[A-Z0-9_]*(?:SECRET|TOKEN|KEY|PASSWORD|PRIVATE)
+    message: "Secret in a NEXT_PUBLIC_* variable — Next.js inlines these into the client bundle at build. Keep secrets in non-prefixed server-only env vars."
+  - regex: (?i)script-src[^;\"']*'unsafe-inline'
+    message: "CSP script-src 'unsafe-inline' defeats XSS protection. Use nonces/hashes; keep 'unsafe-inline' out of production."
+  - regex: (?i)script-src[^;\"']*'unsafe-eval'
+    message: "CSP ships 'unsafe-eval' — allows eval-based code execution. Gate behind NODE_ENV==='development' or omit."
+confidence: 0.7
+fix: "Never prefix secrets with NEXT_PUBLIC_. Remove 'unsafe-inline'/'unsafe-eval' from CSP; use per-request nonces."

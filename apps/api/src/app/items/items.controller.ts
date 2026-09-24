@@ -22,6 +22,15 @@ export class ItemsController {
     return this.itemsService.fetchExternal(req);
   }
 
+  // Vulnerable calculator — evaluates a user expression (code injection).
+  @Get('calc')
+  calc(@Query('expr') expr: string) {
+    // INTENTIONAL (KEUR-SEC-004): eval() on user input — remote code execution
+    // eslint-disable-next-line no-eval
+    const result = eval(expr);
+    return { expr, result };
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.itemsService.findOne(Number(id));

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { createHash } from 'crypto';
 import * as jwt from 'jsonwebtoken';
+import { getDb } from '../db/database';
 
 /**
  * mestjs auth — INTENTIONALLY INSECURE.
@@ -45,9 +46,31 @@ export class AuthService {
     return user.password === ADMIN_PASSWORD;
   }
 
+  // Verifies a login against the users table. Returns the user row or null.
+  login(username: string, password: string): { id: number; username: string; role: string } | null {
+    const hash = this.hashPassword(password); // MD5 (INTENTIONAL, SEC-038)
+    const row = getDb()
+      .prepare('SELECT id, username, role FROM users WHERE username = ? AND password = ?')
+      .get(username, hash) as { id: number; username: string; role: string } | undefined;
+    return row ?? null;
+  }
+
   // Signs a jwt with a short, weak secret — brute-forceable offline.
   signToken(userId: number): string {
     // INTENTIONAL (SEC-016): jwt signed with a short weak secret
     return jwt.sign({ sub: userId }, 'shortsecret');
+  }
+
+  // Verifies a jwt but accepts expired tokens — replay window never closes.
+  verifyToken(token: string): unknown {
+    // INTENTIONAL (MEST-NEST-003): ignoreExpiration accepts expired tokens
+    return jwt.verify(token, 'shortsecret', { ignoreExpiration: true });
+  }
+
+  // Trusts claims from jwt.decode() — no signature check, forgeable.
+  userIdFromToken(token: string): unknown {
+    // INTENTIONAL (MEST-NEST-003): decode() trusts unverified claims
+    const claims = jwt.decode(token) as unknown as { sub?: number } | null;
+    return claims?.sub ?? null;
   }
 }

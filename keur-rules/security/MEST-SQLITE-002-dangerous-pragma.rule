@@ -1,0 +1,25 @@
+# Dangerous SQLite configuration + better-sqlite3 API misuse.
+# Source: docs/research/sqlite.md (sqlite.org PRAGMA reference + security.html,
+# better-sqlite3 docs).
+id: MEST-SQLITE-002
+title: Dangerous SQLite PRAGMA / better-sqlite3 misuse
+category: security
+severity: error
+engine: pattern
+skip_comments: true
+target:
+  extensions: .js .ts .mjs .jsx .tsx .sql
+  exclude_paths: test/ tests/ node_modules/ dist/ build/
+patterns:
+  - regex: (?i)(?:PRAGMA\s+|\.pragma\s*\(\s*['"])journal_mode\s*=\s*OFF
+    message: "journal_mode = OFF disables the rollback journal — a crash mid-transaction corrupts the DB. Use DELETE or WAL."
+  - regex: (?i)(?:PRAGMA\s+|\.pragma\s*\(\s*['"])synchronous\s*=\s*OFF
+    message: "synchronous = OFF risks DB corruption on OS crash/power loss. Leave at FULL (or NORMAL under WAL)."
+  - regex: (?i)(?:PRAGMA\s+|\.pragma\s*\(\s*['"])writable_schema\s*=\s*ON
+    message: "writable_schema = ON lets ordinary DML corrupt sqlite_schema — never enable in app code."
+  - regex: (?i)\.loadExtension\s*\(
+    message: "db.loadExtension() loads native code into the process — only load vetted, version-matched extensions, never a path derived from input."
+  - regex: (?i)new\s+Database\s*\([^)]*verbose\s*:\s*console\.log
+    message: "better-sqlite3 { verbose: console.log } logs every SQL statement incl. bound values — leaks PII/secrets to logs. Disable in production."
+confidence: 0.75
+fix: "Keep a rollback journal + synchronous=FULL/NORMAL; never enable writable_schema; vet loadExtension inputs; disable verbose SQL logging in production."

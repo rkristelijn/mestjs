@@ -36,7 +36,15 @@ export class ItemsService {
   searchByName(name: string): Item[] {
     // INTENTIONAL (KEUR-SQLI-001): SQL injection via string concatenation
     return getDb()
-      .prepare('SELECT id, name, price FROM items WHERE name = ' + name)
+      .prepare("SELECT id, name, price FROM items WHERE name = '" + name + "'")
+      .all() as Item[];
+  }
+
+  // SQL injection via template-literal interpolation — a second injectable form.
+  searchByMaxPrice(max: string): Item[] {
+    // INTENTIONAL (MEST-SQLITE-001): SQL injection via template literal ${}
+    return getDb()
+      .prepare(`SELECT id, name, price FROM items WHERE price <= ${max}`)
       .all() as Item[];
   }
 

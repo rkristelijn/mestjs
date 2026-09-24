@@ -1,0 +1,22 @@
+# TanStack Query correctness/security antipatterns.
+# Source: docs/research/tanstack.md rows 11 (retry:true), 21 (new QueryClient in
+# render), 30 (background polling of sensitive data). TkDodo + tanstack docs.
+id: MEST-TANSTACK-001
+title: TanStack Query misuse (client-in-render, infinite retry)
+category: quality
+severity: warning
+engine: pattern
+requires:
+  framework: @tanstack/react-query
+target:
+  extensions: .tsx .jsx .ts .js
+  exclude_paths: test/ tests/ node_modules/ dist/ build/ .next/
+patterns:
+  - regex: (?:function|const)\s+[A-Z]\w*[^\n]*\n[^}]*\bnew\s+QueryClient\s*\(
+    message: "new QueryClient() created inside a component — a fresh empty cache on every render. Create it once (useState(() => new QueryClient()) or module scope)."
+  - regex: \bretry\s*:\s*true\b
+    message: "retry: true means infinite retries — a persistently failing/4xx request retries forever (self-inflicted DoS). Use a finite number and skip retries on 4xx."
+  - regex: \brefetchIntervalInBackground\s*:\s*true
+    message: "refetchIntervalInBackground: true keeps polling sensitive endpoints on a backgrounded tab — pauses are safer. Leave it false."
+confidence: 0.6
+fix: "Create QueryClient once (module scope or useState initializer). Set retry to a finite count with a 4xx guard. Avoid background polling of sensitive data."

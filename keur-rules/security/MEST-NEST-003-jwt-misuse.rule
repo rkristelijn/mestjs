@@ -1,0 +1,19 @@
+# JWT verification/handling antipatterns.
+# Source: docs/research/nestjs.md rows 24-26 (OWASP JWT + NestJS auth docs).
+id: MEST-NEST-003
+title: JWT misuse — ignoreExpiration / decode-to-trust
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .ts .js
+  exclude_paths: test/ tests/ node_modules/ dist/ build/
+patterns:
+  - regex: ignoreExpiration\s*:\s*true
+    message: "JWT verified with ignoreExpiration: true — expired tokens are accepted, so a stolen token never stops working. Let verify enforce exp."
+  - regex: (?:jwt|jsonwebtoken)\s*\.\s*decode\s*\(
+    message: "jwt.decode() does NOT verify the signature — claims from it are attacker-controlled. Use jwt.verify()/verifyAsync() for anything security-relevant."
+  - regex: verify\s*\([^)]*algorithms\s*:\s*\[\s*['\"]none['\"]
+    message: "JWT verify allowing alg 'none' — signature check disabled, tokens are forgeable. Pin a strong algorithm (e.g. RS256/HS256)."
+confidence: 0.7
+fix: "Never set ignoreExpiration: true; use verify (not decode) for trust; pin algorithms explicitly and never allow 'none'."

@@ -1,0 +1,19 @@
+# Exception handler that returns the stack trace / raw error to the client.
+# Source: docs/research/nestjs.md row 40 (OWASP Error Handling Cheat Sheet).
+id: MEST-NEST-004
+title: Stack trace / raw error exposed in HTTP response
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js
+  exclude_paths: test/ tests/ node_modules/ dist/ build/
+patterns:
+  - regex: (?:res|response|reply)\s*\.[^;]*(?:json|send)\s*\([^)]*\.stack
+    message: "Error .stack returned in the HTTP response — leaks file paths, versions and internals to attackers. Return a generic message; log the stack server-side."
+  - regex: \bstack\s*:\s*(?:err|error|exception|e)\b[\w.]*\.stack
+    message: "A 'stack' field set to an error's .stack in a response body — do not ship stack traces to clients."
+  - regex: \bstack\s*:\s*[\w.]*\.stack\b
+    message: "Response object exposes a stack trace (stack: ...stack) — return a generic message and log details server-side only."
+confidence: 0.6
+fix: "Return a generic { statusCode, message } to the client; log err.stack to the server logger only."

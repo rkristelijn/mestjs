@@ -1,0 +1,18 @@
+# Session/auth cookie set without httpOnly / secure / sameSite flags.
+# Source: docs/research/nestjs.md row 46 (OWASP Session Management Cheat Sheet).
+id: MEST-AUTH-001
+title: Auth/session cookie without httpOnly/secure/sameSite
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .ts .js
+  exclude_paths: test/ tests/ node_modules/ dist/ build/
+patterns:
+  - regex: (?i)\.cookie\s*\(\s*['"](?:session|token|auth|jwt|sid|access_token)['"]\s*,[^,]+,\s*\{\s*\}
+    message: "Session/auth cookie set with an empty options object — no httpOnly, secure or sameSite. It is readable by JS (XSS theft) and sent over plain HTTP. Set { httpOnly: true, secure: true, sameSite: 'lax' }."
+  - regex: (?i)\.cookie\s*\(\s*['"](?:session|token|auth|jwt|sid|access_token)['"][^)]*\)
+    exclude: (?i)httpOnly\s*:\s*true
+    message: "Auth cookie set without httpOnly: true — steal-able via XSS. Add { httpOnly: true, secure: true, sameSite: 'lax'|'strict' }."
+confidence: 0.7
+fix: "res.cookie('session', token, { httpOnly: true, secure: true, sameSite: 'lax' })."

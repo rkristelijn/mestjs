@@ -1,0 +1,21 @@
+# NestJS ValidationPipe without whitelist — extra body properties reach the
+# service/entity (mass-assignment surface). Source: docs/research/nestjs.md
+# rows 13-14, 53 (docs.nestjs.com/techniques/validation).
+id: MEST-NEST-002
+title: NestJS ValidationPipe without whitelist / forbidNonWhitelisted
+category: security
+severity: warning
+engine: pattern
+requires:
+  framework: @nestjs
+target:
+  extensions: .ts
+  exclude_paths: test/ tests/ node_modules/ dist/ build/
+patterns:
+  - regex: new\s+ValidationPipe\s*\(\s*\)
+    message: "ValidationPipe() with no options — extra request properties pass through to the service/entity. Add { whitelist: true, forbidNonWhitelisted: true }."
+  - regex: new\s+ValidationPipe\s*\(\s*\{(?:[^}]*)\}\s*\)
+    exclude: whitelist\s*:\s*true
+    message: "ValidationPipe configured without whitelist: true — unexpected fields are not stripped (mass-assignment risk). Add whitelist: true (and forbidNonWhitelisted: true)."
+confidence: 0.6
+fix: "new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }); register it globally with app.useGlobalPipes(...)."
