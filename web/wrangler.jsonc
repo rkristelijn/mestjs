@@ -1,0 +1,36 @@
+/**
+ * For more details on how to configure Wrangler, refer to:
+ * https://developers.cloudflare.com/workers/wrangler/configuration/
+ */
+// UGLY HACK: automater left <WORKER_NAME> / <COMPATIBILITY_DATE> as unfilled
+// placeholders, which crashes `next build` (OpenNext validates this file even
+// locally). mestjs is a local-only worst-repo — it is NEVER deployed to
+// Cloudflare. These are dummy values purely to satisfy the local build/dev
+// validation. See github.com/rkristelijn/automater/issues/4.
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "mestjs-web-local-only",
+	"main": ".open-next/worker.js",
+	"compatibility_date": "2025-09-01",
+	"compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+	"assets": {
+		"binding": "ASSETS",
+		"directory": ".open-next/assets"
+	},
+	"images": {
+		// Enable image optimization
+		// see https://opennext.js.org/cloudflare/howtos/image
+		"binding": "IMAGES"
+	},
+	"services": [
+		{
+			// Self-reference service binding, the service name must match the worker name
+			// see https://opennext.js.org/cloudflare/caching
+			"binding": "WORKER_SELF_REFERENCE",
+			"service": "mestjs-web-local-only"
+		}
+	],
+	"observability": {
+		"enabled": true
+	}
+}

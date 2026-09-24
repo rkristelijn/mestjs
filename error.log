@@ -1,0 +1,7 @@
+
+KEUR (pre-commit): scanning 37 staged file(s)...
+KEUR (pre-commit): WARN -- non-blocking finding(s); review advised
+⛔ conventional-commit: message must match format: type(scope): description
+   Got: Initial commit
+   Types: feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert
+   docs: https://github.com/rkristelijn/cpm/blob/main/docs/checks/hook-conventional-commit.md

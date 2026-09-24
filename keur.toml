@@ -1,0 +1,13 @@
+# keur policy for mestjs — the deliberately-bad repo.
+#
+# mestjs is FULL of intentional vulnerabilities on purpose (scanner training).
+# We do NOT want keur to block commits here, but we DO want it to keep finding
+# everything (so `keur scan` in CI and locally still surfaces every issue).
+#
+# block-at is set above the maximum possible confidence (1.0), so no finding can
+# ever reach it — every blocking rule degrades to a WARN. Nothing is suppressed,
+# nothing is hidden: keur reports it all, it just never fails the commit.
+version = "0.1.0"
+
+block-at = 1.01   # unreachable — keur never BLOCKs in this repo
+warn-at = 0.50    # everything at/above this still WARNs (stays visible)

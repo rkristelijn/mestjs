@@ -1,0 +1,155 @@
+name: ci
+
+# mestjs is a deliberately insecure app. NONE of the security jobs gate the
+# build — every scan is allow-failure (continue-on-error) and exists to
+# *surface* findings, not to block. That is intentional.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: build (api + web)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install api/Nx deps (npm, legacy peer deps)
+        run: npm install --legacy-peer-deps
+
+      - name: Build api
+        run: npx nx build api
+
+      - name: Install web deps (pnpm)
+        working-directory: web
+        run: pnpm install --no-frozen-lockfile
+
+      # web static export is known to fail on Toolpad prerender — allow-failure.
+      - name: Build web
+        working-directory: web
+        run: pnpm build
+        continue-on-error: true
+
+  lint:
+    name: lint (allow-failure)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install deps
+        run: npm install --legacy-peer-deps
+      - name: Lint (Nx)
+        run: npx nx run-many -t lint --all
+        continue-on-error: true
+
+  npm-audit:
+    name: npm audit (allow-failure)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - name: npm audit (root / api)
+        run: npm install --legacy-peer-deps && npm audit || true
+      - name: pnpm audit (web)
+        working-directory: web
+        run: pnpm install --no-frozen-lockfile && pnpm audit || true
+
+  gitleaks:
+    name: gitleaks secret scan (allow-failure)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        continue-on-error: true
+        env:
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: 'true'
+          # mestjs has intentional hardcoded secrets — report, never fail.
+
+  semgrep:
+    name: semgrep SAST (allow-failure)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    container:
+      image: semgrep/semgrep
+    steps:
+      - uses: actions/checkout@v4
+      - name: semgrep scan
+        run: semgrep scan --config auto --error --json --output semgrep.json || semgrep scan --config auto
+        continue-on-error: true
+      - name: Upload semgrep report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: semgrep-report
+          path: semgrep.json
+          if-no-files-found: ignore
+
+  zap:
+    name: OWASP ZAP DAST (allow-failure)
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install api deps
+        run: npm install --legacy-peer-deps
+      - name: Install web deps
+        working-directory: web
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Start api (background)
+        run: |
+          nohup npx nx serve api > /tmp/api.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf http://localhost:3000/api/items && break; sleep 2; done
+
+      - name: Start web (background)
+        working-directory: web
+        run: |
+          nohup pnpm dev -p 3001 > /tmp/web.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf http://localhost:3001/items && break; sleep 2; done
+
+      - name: ZAP baseline scan
+        uses: zaproxy/action-baseline@v0.12.0
+        continue-on-error: true
+        with:
+          target: 'http://localhost:3001/items'
+          cmd_options: '-I'
+          fail_action: false
+
+      - name: Upload ZAP report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-report
+          path: |
+            report_html.html
+            report_md.md
+            report_json.json
+          if-no-files-found: ignore
