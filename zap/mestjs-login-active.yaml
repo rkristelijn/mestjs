@@ -1,0 +1,100 @@
+# OWASP ZAP Automation Framework plan — mestjs LOGIN/SESSION active scan.
+#
+# Purpose: exercise the deliberately-vulnerable auth surface of the running
+# mestjs API so ZAP surfaces the session/login vulns that a passive baseline
+# (which never POSTs credentials) misses:
+#   - session cookie set with no HttpOnly / Secure / SameSite   (passive, on the
+#     login RESPONSE — so we must POST to /login first to get a Set-Cookie)
+#   - no rate limiting on the auth route = brute force            (demonstrated
+#     out-of-band with the loop in DOCKER-ZAP.md; ZAP's active scan hammers the
+#     login params which also exercises the missing throttle)
+#   - reflected/DOM XSS + injection on the item + login params    (active scan)
+#
+# Target: the API reached from the ZAP container. On Docker Desktop (macOS/Win)
+# the host is host.docker.internal; inside `docker compose` use the service name
+# (api-node20:3000). This file uses host.docker.internal so it runs with a plain
+# `docker run` against an app already listening on host :3000.
+#
+# Run (app already up on host :3000):
+#   docker run --rm -v "$PWD/zap/out:/zap/wrk:rw" zaproxy/zap-stable:latest \
+#     zap.sh -cmd -autorun /zap/wrk/mestjs-login-active.yaml
+# (copy this file into ./zap/out first, or mount ./zap and adjust the path)
+
+env:
+  contexts:
+    - name: "mestjs-auth"
+      urls:
+        - "http://host.docker.internal:3000/api"
+      includePaths:
+        - "http://host.docker.internal:3000/api.*"
+      excludePaths:
+        # do not fuzz logout into a loop; keep the scan focused on auth entry.
+        - "http://host.docker.internal:3000/api/login/logout"
+  parameters:
+    failOnError: false
+    failOnWarning: false
+    progressToStdout: true
+
+jobs:
+  # 1) Seed the auth + session endpoints so ZAP has real requests to attack.
+  #    The POST bodies make ZAP see the login Set-Cookie (→ cookie-flag alerts)
+  #    and give the active scanner the username/password params to fuzz.
+  #    NOTE: this ZAP version's requestor job does not accept per-request
+  #    `headers`; it sends form-encoded POST data by default. The NestJS
+  #    controllers need application/json, so JSON login bodies are seeded from
+  #    the host with curl through the ZAP proxy instead (see DOCKER-ZAP.md,
+  #    "Seeding JSON login requests"). Here we seed the GET surface + the
+  #    form-shaped login params so the active scanner still fuzzes them.
+  - type: requestor
+    parameters:
+      user: ""
+    requests:
+      # JWT-cookie login (auth.controller.ts) — flagless `session` cookie.
+      # Form-encoded; the active scanner fuzzes the username/password params.
+      - url: "http://host.docker.internal:3000/api/auth/login"
+        method: "POST"
+        data: "username=admin&password=admin"
+      # hijackable session login (login.controller.ts) — flagless `sid` cookie,
+      # predictable Math.random() token, session fixation, no rate limiting.
+      - url: "http://host.docker.internal:3000/api/login"
+        method: "POST"
+        data: "username=admin&password=admin"
+      # the "secure" route that admits any valid sid (broken access control).
+      - url: "http://host.docker.internal:3000/api/login/secure"
+        method: "GET"
+      # item endpoints (SQLi / eval-RCE / SSRF) so one plan covers the app.
+      - url: "http://host.docker.internal:3000/api/items"
+      - url: "http://host.docker.internal:3000/api/items/search?name=test"
+
+  # 2) Spider from the seeded requests to build the site tree.
+  - type: spider
+    parameters:
+      context: "mestjs-auth"
+      maxDuration: 2
+
+  # 3) Let the passive scanner finish — this is what raises the cookie-flag,
+  #    header, CORS and info-leak alerts on the login RESPONSES.
+  - type: passiveScan-wait
+    parameters:
+      maxDuration: 3
+
+  # 4) Active scan: fuzz the login/item parameters (SQLi, XSS, injection). This
+  #    also drives repeated requests at the un-throttled auth route.
+  - type: activeScan
+    parameters:
+      context: "mestjs-auth"
+      policy: "Default Policy"
+
+  # 5) Reports (HTML for humans, JSON for CI / this write-up).
+  - type: report
+    parameters:
+      template: "traditional-html"
+      reportDir: "/zap/wrk/out"
+      reportFile: "login-active-report"
+      reportTitle: "mestjs login/session active scan"
+  - type: report
+    parameters:
+      template: "traditional-json"
+      reportDir: "/zap/wrk/out"
+      reportFile: "login-active-report"
+      reportTitle: "mestjs login/session active scan"

@@ -155,6 +155,12 @@ gate is simply report-only for this repo.
 | `apps/api/src/main.ts`         | CORS wide open (`origin: '*'`)        | —               |
 | `web/.../ItemBanner.tsx`       | XSS via `dangerouslySetInnerHTML`     | SEC-041         |
 | `web/.../ItemBanner.tsx`       | Token logged to console               | SEC-032         |
+| `apps/api/.../login/login.controller.ts` | Session fixation (id not rotated on login) | KEUR-SESS-001 |
+| `apps/api/.../login/login.controller.ts` | Session cookie without SameSite/secure/httpOnly | KEUR-NEST-001, KEUR-SESS-002 |
+| `apps/api/.../login/login.controller.ts` | No rate limiting on login (brute force) | — (NestJS `@Post` FN) |
+| `apps/api/.../login/session.store.ts` | Boolean-only session, no bound identity | — (FN: KEUR-SESS-003) |
+| `apps/api/.../login/session.store.ts` | MemoryStore-style in-process map, never evicted | — (FN: KEUR-SESS-004) |
+| `apps/api/.../auth/auth.controller.ts` | Session cookie without flags        | KEUR-NEST-001, KEUR-SESS-002 |
 
 `keur scan apps/api/src` fires 11 rules / 18 findings; `keur scan web/src` fires
 SEC-041 (XSS) and SEC-032 (token logging). (Both also flag KEUR-QUAL-002 for a

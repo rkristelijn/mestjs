@@ -1,0 +1,96 @@
+# mestjs — deliberately-vulnerable scan-target matrix for OWASP ZAP.
+#
+# DO NOT DEPLOY PUBLICLY. Every service is intentionally insecure: the app code
+# (SQLi, eval-RCE, SSRF, stack-trace leak, wide-open CORS, insecure cookies,
+# mass assignment) AND the pinned Node runtime (a patch that still contains a
+# known CVE — see apps/api/Dockerfile). This exists so we can configure ZAP to
+# find these vulnerabilities.
+#
+# Usage:
+#   docker compose up -d --build          # bring up the 4 API targets
+#   docker compose run --rm zap           # run the ZAP automation scan
+#   docker compose --profile web up -d    # optionally add the Next.js frontend
+#
+# Targets (each is the SAME vulnerable app on a different Node version):
+#   node20 -> http://localhost:3000/api   (Node 20.19.1, CVE-2025-23167 smuggling)
+#   node22 -> http://localhost:3002/api   (Node 22.17.0, CVE-2025-27210 traversal)
+#   node24 -> http://localhost:3004/api   (Node 24.4.0,  CVE-2025-27209 HashDoS)
+#   node26 -> http://localhost:3006/api   (Node 26.0.0,  CVE-2026-48618 TLS bypass)
+
+services:
+  api-node20:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      args:
+        NODE_VERSION: "20.19.1"
+    image: mestjs-api:node20
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: "3000"
+
+  api-node22:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      args:
+        NODE_VERSION: "22.17.0"
+    image: mestjs-api:node22
+    ports:
+      - "3002:3000"
+    environment:
+      PORT: "3000"
+
+  api-node24:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      args:
+        NODE_VERSION: "24.4.0"
+    image: mestjs-api:node24
+    ports:
+      - "3004:3000"
+    environment:
+      PORT: "3000"
+
+  api-node26:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      args:
+        NODE_VERSION: "26.0.0"
+    image: mestjs-api:node26
+    ports:
+      - "3006:3000"
+    environment:
+      PORT: "3000"
+
+  # Optional Next.js frontend (default Node pin). Enable with: --profile web
+  web:
+    profiles: ["web"]
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+      args:
+        NODE_VERSION: "20.19.1"
+    image: mestjs-web:node20
+    ports:
+      - "3001:3001"
+    environment:
+      PORT: "3001"
+
+  # OWASP ZAP — runs the automation plan against the 4 API targets.
+  # Uses the container network, so it reaches the APIs by service name.
+  zap:
+    image: zaproxy/zap-stable:latest
+    profiles: ["scan"]
+    depends_on:
+      - api-node20
+      - api-node22
+      - api-node24
+      - api-node26
+    volumes:
+      - ./zap:/zap/wrk:rw
+    # The automation plan defines the targets, scan policy and reports.
+    command: ["zap.sh", "-cmd", "-autorun", "/zap/wrk/mestjs-scan.yaml"]

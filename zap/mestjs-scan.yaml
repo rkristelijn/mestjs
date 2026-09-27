@@ -1,0 +1,140 @@
+# OWASP ZAP Automation Framework plan for the mestjs vulnerable-target matrix.
+#
+# Runs against the 4 Node-version API containers (reached by compose service
+# name on the internal network). For each target it: spiders, seeds the known
+# vulnerable endpoints with attack-ish parameters (so the active scanner is
+# guaranteed to reach them), runs a full active scan, and writes an HTML+JSON
+# report per target into ./zap/.
+#
+# Run:  docker compose --profile scan run --rm zap
+# (or:  docker compose up -d --build && docker compose --profile scan run --rm zap)
+#
+# The vulnerabilities ZAP is configured to find here:
+#   - SQL injection            /api/items/search?name= , seeded ?max=
+#   - Remote code execution    /api/items/calc?expr=      (eval on user input)
+#   - SSRF                      /api/items/proxy?url=
+#   - Information disclosure    stack trace in 500 responses (leaky filter)
+#   - Missing security headers  no helmet (CSP/HSTS/X-Frame-Options/X-Content-Type)
+#   - CORS misconfiguration     Access-Control-Allow-Origin: *
+#   - Insecure cookie           session cookie w/o HttpOnly/Secure/SameSite
+#   - Mass assignment           /api/items/bulk
+
+env:
+  contexts:
+    - name: "mestjs-node20"
+      urls:
+        - "http://api-node20:3000/api"
+      includePaths:
+        - "http://api-node20:3000/api.*"
+    - name: "mestjs-node22"
+      urls:
+        - "http://api-node22:3000/api"
+      includePaths:
+        - "http://api-node22:3000/api.*"
+    - name: "mestjs-node24"
+      urls:
+        - "http://api-node24:3000/api"
+      includePaths:
+        - "http://api-node24:3000/api.*"
+    - name: "mestjs-node26"
+      urls:
+        - "http://api-node26:3000/api"
+      includePaths:
+        - "http://api-node26:3000/api.*"
+  parameters:
+    failOnError: true
+    failOnWarning: false
+    progressToStdout: true
+
+jobs:
+  # Wait for the freshly-started API containers to accept connections.
+  - type: delay
+    parameters:
+      time: "0:00:20"
+
+  # Seed the vulnerable endpoints for EVERY target. The spider alone will not
+  # discover query-parameter endpoints, so we request them explicitly with
+  # attack-shaped values; the active scanner then fuzzes those parameters.
+  - type: requestor
+    parameters:
+      user: ""
+    requests:
+      # --- node20 ---
+      - url: "http://api-node20:3000/api/items"
+      - url: "http://api-node20:3000/api/items/search?name=test"
+      - url: "http://api-node20:3000/api/items/calc?expr=1%2B1"
+      - url: "http://api-node20:3000/api/items/proxy?url=http://example.com"
+      - url: "http://api-node20:3000/api/items/999999"   # triggers the leaky 500 filter
+      # --- node22 ---
+      - url: "http://api-node22:3000/api/items"
+      - url: "http://api-node22:3000/api/items/search?name=test"
+      - url: "http://api-node22:3000/api/items/calc?expr=1%2B1"
+      - url: "http://api-node22:3000/api/items/proxy?url=http://example.com"
+      - url: "http://api-node22:3000/api/items/999999"
+      # --- node24 ---
+      - url: "http://api-node24:3000/api/items"
+      - url: "http://api-node24:3000/api/items/search?name=test"
+      - url: "http://api-node24:3000/api/items/calc?expr=1%2B1"
+      - url: "http://api-node24:3000/api/items/proxy?url=http://example.com"
+      - url: "http://api-node24:3000/api/items/999999"
+      # --- node26 ---
+      - url: "http://api-node26:3000/api/items"
+      - url: "http://api-node26:3000/api/items/search?name=test"
+      - url: "http://api-node26:3000/api/items/calc?expr=1%2B1"
+      - url: "http://api-node26:3000/api/items/proxy?url=http://example.com"
+      - url: "http://api-node26:3000/api/items/999999"
+
+  # Spider each target to build the site tree from the seeded requests.
+  - type: spider
+    parameters:
+      context: "mestjs-node20"
+      maxDuration: 2
+  - type: spider
+    parameters:
+      context: "mestjs-node22"
+      maxDuration: 2
+  - type: spider
+    parameters:
+      context: "mestjs-node24"
+      maxDuration: 2
+  - type: spider
+    parameters:
+      context: "mestjs-node26"
+      maxDuration: 2
+
+  # Let the passive scanner finish (headers, CORS, cookies, info leaks).
+  - type: passiveScan-wait
+    parameters:
+      maxDuration: 5
+
+  # Active scan each target (SQLi, RCE/injection, SSRF, etc.).
+  - type: activeScan
+    parameters:
+      context: "mestjs-node20"
+      policy: "Default Policy"
+  - type: activeScan
+    parameters:
+      context: "mestjs-node22"
+      policy: "Default Policy"
+  - type: activeScan
+    parameters:
+      context: "mestjs-node24"
+      policy: "Default Policy"
+  - type: activeScan
+    parameters:
+      context: "mestjs-node26"
+      policy: "Default Policy"
+
+  # One combined HTML report + a JSON report for tooling/CI.
+  - type: report
+    parameters:
+      template: "traditional-html"
+      reportDir: "/zap/wrk"
+      reportFile: "mestjs-zap-report"
+      reportTitle: "mestjs vulnerable-matrix ZAP scan"
+  - type: report
+    parameters:
+      template: "traditional-json"
+      reportDir: "/zap/wrk"
+      reportFile: "mestjs-zap-report"
+      reportTitle: "mestjs vulnerable-matrix ZAP scan"
