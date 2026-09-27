@@ -140,6 +140,25 @@ They are **not** suppressed with `keur:ignore`. Instead, `keur.toml` sets
 and *reports* everything but never blocks the commit. Nothing is hidden — the
 gate is simply report-only for this repo.
 
+### Authored ground truth (`KEUR-EXPECT` markers)
+
+Every intentional vuln is also labelled as **authored ground truth**: the file
+carries a top-of-file `// KEUR-EXPECT: <RULE> ...` line declaring which keur
+rules *should* fire, plus a co-located `// INTENTIONAL (<RULE>): ...` comment on
+the vulnerable line. Because the vulns are author-written, these are
+high-confidence, reviewed labels — the kind of "the repo documents its own
+defects" ground truth that is far more trustworthy than a scanner guess.
+
+Verify that keur actually detects what the markers claim:
+
+```sh
+./verify-markers.sh apps/api     # or: ./verify-markers.sh web
+```
+
+It scans with keur and prints a **TP / FN / EXTRA** table plus the authored
+recall. FN = a marked vuln keur misses (a rule to write); EXTRA = keur fires
+without a marker (a bonus find to review). Current authored recall: 100%.
+
 | Where                          | Antipattern                          | keur rule       |
 |--------------------------------|--------------------------------------|-----------------|
 | `apps/api/.../auth.service.ts` | Hardcoded API key / admin / DB secret | KEUR-SEC-002, KEUR-SECRET-001 |
