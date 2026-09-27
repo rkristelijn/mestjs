@@ -1,6 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { getDb } from '../db/database';
 
+// KEUR-EXPECT: SEC-014 SEC-028 SEC-029
+// KEUR-EXPECT: KEUR-SQLI-001
+// KEUR-EXPECT: KEUR-SQLI-002
+// KEUR-CATEGORY: security
+// KEUR-OWASP: A03-injection A01-broken-access-control A10-ssrf
+// KEUR-NOTE: self-authored vulnerable fixture (mestjs). Verified against
+//   `keur scan` 2026-09-26. SEC-014 (mass assignment) and SEC-028 (SSRF) FIRE (TP).
+// KEUR-NOTE: KEUR-SQLI-001@39 (string-concat SQLi) and MEST-SQLITE-001@47
+//   (template-literal SQLi) — KEUR-SQLI-001 catches concat; KEUR-SQLI-002 (new) catches this template-literal form — real injection defects
+//   keur currently MISSES on better-sqlite3 .prepare(...). Authored FN targets.
+
 export interface Item {
   id: number;
   name: string;
@@ -42,7 +53,7 @@ export class ItemsService {
 
   // SQL injection via template-literal interpolation — a second injectable form.
   searchByMaxPrice(max: string): Item[] {
-    // INTENTIONAL (MEST-SQLITE-001): SQL injection via template literal ${}
+    // INTENTIONAL (KEUR-SQLI-002): SQL injection via template literal ${}
     return getDb()
       .prepare(`SELECT id, name, price FROM items WHERE price <= ${max}`)
       .all() as Item[];

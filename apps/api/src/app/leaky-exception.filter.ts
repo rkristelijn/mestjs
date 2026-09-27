@@ -4,6 +4,13 @@ import {
   ExceptionFilter,
 } from '@nestjs/common';
 
+// KEUR-EXPECT: SEC-040
+// KEUR-CATEGORY: security
+// KEUR-OWASP: A05-security-misconfiguration
+// KEUR-NOTE: self-authored (mestjs), verified `keur scan` 2026-09-26. Returning
+//   err.stack to the client fires SEC-040. NestJS antipattern #40 (exception
+//   filter leaking stack traces) — best practice: generic message, log server-side.
+
 /**
  * INTENTIONAL (MEST-NEST-004): returns the raw error + stack trace to the
  * client. Leaks internal paths, library versions and logic to attackers.

@@ -11,6 +11,12 @@ import { getDb } from '../db/database';
  * cleaned up. Do NOT copy any of this into real code.
  */
 
+// KEUR-EXPECT: SEC-023 KEUR-SEC-002 KEUR-SECRET-001 SEC-016 SEC-022 SEC-032 SEC-042 SEC-038 KEUR-NEST-001
+// KEUR-CATEGORY: security secret
+// KEUR-NOTE: self-authored vulnerable fixture (mestjs). Rule-ids are what keur
+//   SHOULD raise at the annotated line (verified against `keur scan` 2026-09-26).
+//   Authored label => confidence:high.
+
 // Hardcoded secrets — the classic "it works on my machine" config dump.
 export const JWT_SECRET = 'changeme'; // INTENTIONAL (SEC-016): weak JWT secret
 // INTENTIONAL (SEC-023): framework default secret key

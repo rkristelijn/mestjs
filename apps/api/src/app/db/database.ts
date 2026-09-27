@@ -1,13 +1,21 @@
 import Database from 'better-sqlite3';
 
+// KEUR-EXPECT: KEUR-SQLITE-001
+// KEUR-CATEGORY: quality security
+// KEUR-NOTE: self-authored (mestjs), verified `keur scan` 2026-09-26.
+// KEUR-NOTE: MEST-SQLITE-002 is a KNOWN FALSE NEGATIVE — keur has no rule for it
+//   yet. Antipatterns present: verbose:console.log leaking every SQL statement +
+//   bound values to logs, and journal_mode/synchronous=OFF (durability disabled).
+//   Authored FN target: a candidate for a new keur rule (SQLite unsafe-pragma).
+
 // mestjs data layer: raw SQL over SQLite, no ORM (by design).
 // Single in-process DB file created and seeded on boot.
-// INTENTIONAL (MEST-SQLITE-002): verbose logs every SQL statement + bound
+// INTENTIONAL (KEUR-SQLITE-001): verbose logs every SQL statement + bound
 // values to the console — leaks data to logs. Slop for scanner training.
 const db = new Database(':memory:', { verbose: console.log });
 
 export function initDb(): void {
-  // INTENTIONAL (MEST-SQLITE-002): disabling the journal + durability for
+  // INTENTIONAL (KEUR-SQLITE-001): disabling the journal + durability for
   // "speed" — a crash mid-write corrupts the DB. Never do this for real data.
   db.pragma('journal_mode = OFF');
   db.pragma('synchronous = OFF');

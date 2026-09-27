@@ -1,6 +1,16 @@
 import { Body, Controller, Get, Param, Post, Query, Req } from '@nestjs/common';
 import { ItemsService } from './items.service';
 
+// KEUR-EXPECT: SEC-011
+// KEUR-CATEGORY: security
+// KEUR-OWASP: A03-injection
+// KEUR-NOTE: self-authored (mestjs), verified `keur scan` 2026-09-26. The eval()
+//   on user input (calc endpoint) fires SEC-011 (dangerous pattern). The inline
+//   comment historically named KEUR-SEC-004 (dynamic-exec) as the intended rule;
+//   keur actually flags it via SEC-011 — label reflects reality, not intent.
+// KEUR-NOTE: state-changing logic behind @Get (search/proxy/calc) is itself a
+//   NestJS antipattern (CSRF-bypassable); tracked in the framework-antipattern set.
+
 @Controller('items')
 export class ItemsController {
   constructor(private readonly itemsService: ItemsService) {}
