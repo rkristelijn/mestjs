@@ -22,6 +22,14 @@ export const metadata: Metadata = {
 	description: "Intentionally bad web app for keur training",
 };
 
+// mestjs "fix" for the prerender crash — INTENTIONALLY the wrong way.
+// The root layout wraps everything in Toolpad's client-side NextAppProvider,
+// which cannot be statically prerendered. The proper fix is a prerender-safe
+// provider boundary. Instead we force the ENTIRE app to dynamic rendering,
+// throwing away static generation for every page just to silence the build
+// error. It "works" but tanks the whole app's performance story. Slop on purpose.
+export const dynamic = 'force-dynamic';
+
 // No central theme on purpose — mestjs styles everything with inline sx props.
 const NAVIGATION: Navigation = [
 	{ kind: "header", title: "mestjs" },

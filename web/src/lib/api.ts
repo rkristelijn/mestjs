@@ -1,4 +1,10 @@
 // Thin fetch client over the mestjs NestJS API.
+// KEUR-EXPECT: KEUR-NEXT-001
+// KEUR-CATEGORY: secret
+// KEUR-OWASP: A02-cryptographic-failures
+// KEUR-NOTE: self-authored (mestjs web), verified 2026-09-26. NEXT_PUBLIC_API_SECRET
+//   is inlined into the client bundle at build (Next.js antipattern #19). Caught
+//   by KEUR-NEXT-001. NEXT_PUBLIC_API_BASE (a URL) correctly does NOT fire.
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:3000/api';
 
