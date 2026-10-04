@@ -24,6 +24,8 @@ mestjs/
 │   │       ├── db/         # SQLite via raw SQL, no ORM (by design)
 │   │       └── items/      # GET/POST /api/items + vulnerable search/proxy/bulk
 │   └── api-e2e/    # Nx e2e project for the api
+├── orders/         # (see apps/orders) NestJS on FASTIFY — order/checkout
+│                   #   service on :3002; seeds Fastify-specific CVEs
 ├── web/            # Next.js 16 + MUI frontend (standalone, made with automater —
 │                   #   NOT Nx-managed; its own pnpm workspace)
 ├── nx.json         # Nx workspace config (covers apps/, not web/)
@@ -31,6 +33,9 @@ mestjs/
 ```
 
 - **api** is a real Nx project (`npm`, webpack, jest).
+- **orders** is a second NestJS Nx project on the **Fastify** adapter (`api`
+  uses Express), on port 3002, seeding the Fastify-specific vulnerability
+  classes — see **`docs/orders.md`**.
 - **web** was generated with [automater](https://github.com/rkristelijn/automater)
   and lives outside Nx with its own `pnpm` lockfile and a Cloudflare/OpenNext
   setup that we never deploy. Two package managers, two tool worlds, one repo —
@@ -190,6 +195,27 @@ rule's `skip_strings` blanks the `'md5'` literal its pattern needs, and the
 engine strips strings per-file whenever any rule opts in. The code is left
 realistic rather than bent to the regex; the engine fix is tracked in the keur
 repo.
+
+### The Lucky 13 — CWE unforgivable vulnerabilities
+
+A dedicated cluster under `apps/api/src/app/lucky13/` seeds Steve Christey's
+[Unforgivable Vulnerabilities](https://cwe.mitre.org/documents/unforgivable_vulns/unforgivable.pdf)
+(MITRE, 2007) — the canonical thirteen vuln classes that should never ship. Of
+the ten that apply to a NestJS/Node stack, keur detects 7 (SQLi, reflected XSS,
+world-writable files, MD5 + `Math.random()` crypto, cookie auth bypass,
+hardcoded account); 3 are authored false-negative targets (RFI-equivalent
+dynamic `require`, directory traversal, unguarded admin route). The three
+C/Windows-only members are documented as N/A. Each exploit is reproduced by an
+e2e suite — a green test means the vuln is live:
+
+```bash
+npx nx e2e api-e2e        # reproduces every Lucky-13 exploit against the API
+```
+
+Full mapping (vuln → fixture → keur rule → detection result) and the FN targets:
+**`docs/lucky13.md`**. A survey of known NestJS CVEs and JS/TS supply-chain
+breaches, with a roadmap to make this corpus complete:
+**`docs/nestjs-typescript-security-issues.md`**.
 
 ## License
 

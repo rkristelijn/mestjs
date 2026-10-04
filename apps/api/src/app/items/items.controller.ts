@@ -35,7 +35,7 @@ export class ItemsController {
   // Vulnerable calculator — evaluates a user expression (code injection).
   @Get('calc')
   calc(@Query('expr') expr: string) {
-    // INTENTIONAL (KEUR-SEC-004): eval() on user input — remote code execution
+    // INTENTIONAL (SEC-011, aka KEUR-SEC-004): eval() on user input — remote code execution
     // eslint-disable-next-line no-eval
     const result = eval(expr);
     return { expr, result };

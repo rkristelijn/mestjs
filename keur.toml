@@ -11,3 +11,31 @@ version = "0.1.0"
 
 block-at = 1.01   # unreachable — keur never BLOCKs in this repo
 warn-at = 0.50    # everything at/above this still WARNs (stays visible)
+
+# --- External scanners: OFF in the git hook ---------------------------------
+#
+# `keur check` (the pre-commit/pre-push hook) can orchestrate proven external
+# tools (gitleaks, semgrep, trivy, …). On this repo semgrep/gitleaks over the
+# staged diff take MINUTES, which makes committing painful. The fast in-process
+# RE2 rule engine already fires everything we need here (and CI runs the heavy
+# scanners separately, see .github/workflows/ci.yml), so we disable every
+# external scanner in the hook. Declaring any [scanners.*] section makes keur
+# use THIS list instead of its built-in defaults; each is turned off explicitly.
+#
+# The in-process keur-rules engine still runs — `keur check` stays sub-second.
+[scanners.gitleaks]
+enabled = false
+[scanners.trufflehog]
+enabled = false
+[scanners.trivy]
+enabled = false
+[scanners.grype]
+enabled = false
+[scanners.osv-scanner]
+enabled = false
+[scanners.semgrep]
+enabled = false
+[scanners.checkov]
+enabled = false
+[scanners.tfsec]
+enabled = false

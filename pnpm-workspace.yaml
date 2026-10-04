@@ -1,0 +1,10 @@
+# Root pnpm config for the Nx/npm side of this hybrid repo.
+#
+# No `packages:` list on purpose: the standalone apps (web/, angular-app,
+# angular-ssr, remix-app, nuxt-app) stay independent pnpm projects with their
+# own lockfiles. The root `pnpm install` installs the Nx deps here and then
+# cascades into those apps via the `postinstall` -> install-apps.sh script.
+#
+# Allow native build scripts (better-sqlite3, swc, esbuild, nx, ...) to run on
+# install. The standalone apps use the same flag in their own workspace files.
+dangerouslyAllowAllBuilds: true

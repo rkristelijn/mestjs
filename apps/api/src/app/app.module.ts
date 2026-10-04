@@ -6,6 +6,7 @@ import { AuthModule } from './auth/auth.module';
 import { InsecureModule } from './insecure/insecure.module';
 import { SlopModule } from './slop/slop.module';
 import { LoginModule } from './login/login.module';
+import { Lucky13Module } from './lucky13/lucky13.module';
 
 // KEUR-EXPECT: KEUR-NEST-003
 // KEUR-CATEGORY: security
@@ -19,7 +20,7 @@ import { LoginModule } from './login/login.module';
 //   route (login included) accepts unbounded requests — open to credential
 //   brute-forcing and request-flood DoS (CWE-770). Fires KEUR-NEST-003.
 @Module({
-  imports: [ItemsModule, AuthModule, InsecureModule, SlopModule, LoginModule],
+  imports: [ItemsModule, AuthModule, InsecureModule, SlopModule, LoginModule, Lucky13Module],
   controllers: [AppController],
   providers: [AppService],
 })

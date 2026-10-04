@@ -14,7 +14,16 @@ module.exports = {
       compiler: 'tsc',
       main: './src/main.ts',
       tsConfig: './tsconfig.app.json',
-      assets: ['./src/assets'],
+      assets: [
+        './src/assets',
+        // Copy the Lucky-13 demo templates next to the bundle so the (still
+        // vulnerable) viewTemplate route resolves its happy path in dist too.
+        {
+          glob: '**/*',
+          input: './src/app/lucky13/templates',
+          output: './templates',
+        },
+      ],
       optimization: false,
       outputHashing: 'none',
       generatePackageJson: true,

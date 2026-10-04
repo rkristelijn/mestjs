@@ -1,0 +1,8 @@
+<!-- Sample template for the Lucky-13 directory-traversal demo route (#5).
+     The VULNERABILITY is in lucky13.controller.ts: viewTemplate() does
+       readFileSync(path.join(__dirname, 'templates', page), 'utf8')
+     with `page` from ?page=… and no containment check, so
+       ?page=../../../../etc/passwd
+     escapes this directory. This benign file is just the happy-path target so
+     the app runs. The route is still exploitable — do NOT treat this as safe. -->
+<h1>mestjs lucky13 — sample template</h1>

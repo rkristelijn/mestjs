@@ -45,3 +45,6 @@ Thumbs.db
 
 # ZAP scan artifacts (generated reports)
 zap/out/
+
+vite.config.*.timestamp*
+vitest.config.*.timestamp*

@@ -1,0 +1,11 @@
+mestjs orders — SAMPLE INVOICE (plain-text stub)
+
+Invoice #1000
+Order: 1
+Item:  Widget x2
+Total: 19.98
+
+This is the happy-path target for GET /orders/:id/invoice?file=.
+The route is still vulnerable to path traversal (?file=../../..) — do not
+treat the presence of this file as "safe". A future `invoicer` PDF backend
+will replace this stub (see docs/ORDERS.md).
