@@ -70,7 +70,7 @@ services:
   web:
     profiles: ["web"]
     build:
-      context: ./web
+      context: ./apps/web
       dockerfile: Dockerfile
       args:
         NODE_VERSION: "20.19.1"

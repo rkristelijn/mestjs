@@ -31,12 +31,12 @@ jobs:
         run: npx nx build api
 
       - name: Install web deps (pnpm)
-        working-directory: web
+        working-directory: apps/web
         run: pnpm install --no-frozen-lockfile
 
       # web static export is known to fail on Toolpad prerender — allow-failure.
       - name: Build web
-        working-directory: web
+        working-directory: apps/web
         run: pnpm build
         continue-on-error: true
 
@@ -70,7 +70,7 @@ jobs:
       - name: npm audit (root / api)
         run: npm install --legacy-peer-deps && npm audit || true
       - name: pnpm audit (web)
-        working-directory: web
+        working-directory: apps/web
         run: pnpm install --no-frozen-lockfile && pnpm audit || true
 
   gitleaks:
@@ -121,7 +121,7 @@ jobs:
       - name: Install api deps
         run: npm install --legacy-peer-deps
       - name: Install web deps
-        working-directory: web
+        working-directory: apps/web
         run: pnpm install --no-frozen-lockfile
 
       - name: Start api (background)
@@ -130,7 +130,7 @@ jobs:
           for i in $(seq 1 60); do curl -sf http://localhost:3000/api/items && break; sleep 2; done
 
       - name: Start web (background)
-        working-directory: web
+        working-directory: apps/web
         run: |
           nohup pnpm dev -p 3001 > /tmp/web.log 2>&1 &
           for i in $(seq 1 60); do curl -sf http://localhost:3001/items && break; sleep 2; done
