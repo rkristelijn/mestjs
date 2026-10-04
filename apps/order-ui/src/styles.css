@@ -1,0 +1,2 @@
+/* mestjs: dark default so there is no white flash before the app paints the theme */
+html, body { margin: 0; background: #0f172a; }

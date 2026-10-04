@@ -7,7 +7,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 
 # Standalone pnpm apps, each self-contained with its own lockfile.
-APPS=(apps/web apps/angular-app apps/angular-ssr apps/remix-app apps/nuxt-app)
+APPS=(apps/shop-shell apps/customers apps/my-page apps/sso apps/products)
 
 for app in "${APPS[@]}"; do
   dir="$ROOT/$app"

@@ -1,8 +1,8 @@
 # Standalone (non-Nx) apps live in this repo with their own package managers
 # and build tooling. Keep them out of the Nx project graph and plugin scans so
 # their vite/next/nuxt/angular configs are not picked up by @nx/vite etc.
-apps/web
-apps/angular-app
-apps/angular-ssr
-apps/remix-app
-apps/nuxt-app
+apps/shop-shell
+apps/customers
+apps/my-page
+apps/sso
+apps/products
